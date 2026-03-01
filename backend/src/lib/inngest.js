@@ -2,6 +2,7 @@ import { Inngest } from "inngest";
 import { connectDB } from "./db.js";
 import User from "../models/User.js";
 import { ENV } from "./env.js";
+import { deleteStreamUser, upsertStreamUser } from "./stream.js";
 
 export const inngest = new Inngest({ id: "interview-platform" });
 
@@ -21,6 +22,13 @@ const syncUser = inngest.createFunction(
         });
 
         await User.create(newUser);
+
+        await upsertStreamUser({
+            id: newUser.clerkId.toString(),
+            name: newUser.name,
+            image: newUser.profileImage
+        })
+
         console.log("User created");
     }
 );
@@ -34,7 +42,10 @@ const deleteUserFromDB = inngest.createFunction(
         const {id} = event.data;
 
         await User.deleteOne({clerkId: id});
-        console.log("User deleted");
+
+        await deleteStreamUser(id.toString());
+
+        // console.log("User deleted");
     }
 );
 
